@@ -3,15 +3,13 @@ import numpy as np
 
 
 def get_dir_label(data_dir):
-    # class_id_dict: [id] = sample_list
-    cate_list = os.listdir(os.path.join(data_dir, 'vision'))
+    cate_list = os.listdir(os.path.join(data_dir, 'Dataset_v3_vision'))
     if '.DS_Store' in cate_list:
         cate_list.remove('.DS_Store')
     class_id_dict = {}
     for i in range(len(cate_list)):
         current_class = cate_list[i]
-        #print(current_class)
-        class_dir = os.path.join(data_dir, 'vision', current_class)
+        class_dir = os.path.join(data_dir, 'Dataset_v3_vision', current_class)
         sample_list = os.listdir(class_dir)
         if '.DS_Store' in sample_list:
             sample_list.remove('.DS_Store')
@@ -118,10 +116,7 @@ def data_construction(data_dir, train_ratio=0.7, val_ratio=0.1):
 
     class_id_dict = get_dir_label(data_dir)
 
-    #(train_sample, train_label, val_sample, val_label, test_sample, test_label) = data_splitter(class_id_dict, train_ratio, val_ratio)
-
     (train_sample, train_label, val_sample, val_label, test_sample, test_label) = data_splitter_by_id(class_id_dict, train_ratio, val_ratio)
-
 
     return (train_sample, train_label, val_sample, val_label, test_sample, test_label)
 
@@ -129,8 +124,6 @@ def data_construction(data_dir, train_ratio=0.7, val_ratio=0.1):
 def audio_construction(data_dir, train_ratio=0.7, val_ratio=0.1):
 
     class_id_dict = get_dir_label(data_dir)
-
-    #(train_sample, train_label, val_sample, val_label, test_sample, test_label) = data_splitter(class_id_dict, train_ratio, val_ratio)
 
     (train_sample, train_label, val_sample, val_label, test_sample, test_label) = data_splitter_by_id(class_id_dict, train_ratio, val_ratio)
 

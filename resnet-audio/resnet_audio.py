@@ -208,7 +208,7 @@ class ResNet(nn.Module):
         x = self.sigmoid(x)
         x = torch.clamp(x, 1e-7, 1 - 1e-7)
 
-        return fc_rep,x
+        return fc_rep, x
 
     def forward(self, x):
         return self._forward_impl(x)

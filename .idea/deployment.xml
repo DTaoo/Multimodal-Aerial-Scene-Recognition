@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData">
+    <serverData>
+      <paths name="hudi@172.19.48.170:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/home/hudi/soundscape/code/git-code" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

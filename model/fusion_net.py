@@ -22,8 +22,8 @@ class FusionNet(nn.Module):
     def forward(self, image, audio):
 
         image_rep = self.image_net(image)[0] # fc_rep
-        #audio_rep = self.audio_net(audio)[0] # fc_rep
-        audio_rep = torch.zeros_like(image_rep)
+        audio_rep = self.audio_net(audio)[0] # fc_rep
+        #audio_rep = torch.zeros_like(image_rep)
 
         #image_rep = self.image_fc1(image_rep)
         #image_rep = self.relu(image_rep) # batch_size * 1024
@@ -31,13 +31,7 @@ class FusionNet(nn.Module):
         #audio_rep = self.audio_fc1(audio_rep)
         #audio_rep = self.relu(audio_rep) # batch_Size * 1024
 
-        # concat
-
-        concat_rep = torch.cat((image_rep,audio_rep),dim = 1)
-
-        #concat_rep = self.fusion_fc1(concat_rep)
-        #concat_rep = self.relu(concat_rep)
-        #concat_rep = self.fusion_fc2(concat_rep) # outter cross-entropy + softmax
+        concat_rep = torch.cat((image_rep,audio_rep), dim = 1)
 
         concat_rep  = self.fusion_fc(concat_rep)
         return concat_rep
@@ -62,7 +56,7 @@ class FusionNet_Bayes(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, image, audio, scene_to_event):
+    def forward(self, image, audio):
 
         image_rep = self.image_net(image)[0] # fc_rep
         audio_rep = self.audio_net(audio)[0] # fc_rep
@@ -70,19 +64,19 @@ class FusionNet_Bayes(nn.Module):
         concat_rep = torch.cat((image_rep,audio_rep),dim = 1)
 
         concat_rep  = self.fusion_fc(concat_rep)
-
+        '''
         scene_predict = self.softmax(concat_rep)
         scene_to_event_ = torch.squeeze(scene_to_event[0,:,:])
-        print(scene_to_event_.shape)
+        #print(scene_to_event_.shape)
         event_predict = scene_predict.mm(scene_to_event_)
-        
-        return concat_rep, event_predict
+        '''
+        return concat_rep
 
 
-class FusionNet_KD(nn.Module):
+class FusionNet_SQ(nn.Module):
 
     def __init__(self, image_net, audio_net,num_classes):
-        super(FusionNet_KD, self).__init__()
+        super(FusionNet_SQ, self).__init__()
 
         self.image_net = image_net
         self.audio_net = audio_net
@@ -113,10 +107,10 @@ class FusionNet_KD(nn.Module):
 
 
 
-class FusionNet_MM_KL(nn.Module):
+class FusionNet_KL(nn.Module):
 
     def __init__(self, image_net, audio_net,num_classes):
-        super(FusionNet_MM_KL, self).__init__()
+        super(FusionNet_KL, self).__init__()
 
         self.image_net = image_net
         self.audio_net = audio_net
@@ -139,16 +133,16 @@ class FusionNet_MM_KL(nn.Module):
         #image_rep = torch.zeros_like(audio_rep)
 
         concat_rep = torch.cat((image_rep,audio_rep),dim = 1)
-        concat_rep_  = self.fusion_fc(concat_rep)
+        concat_rep_ = self.fusion_fc(concat_rep)
         sed_output  = self.KD_fc(concat_rep)
-        #sed_output = self.sig(sed_output)
+        sed_output  = self.sig(sed_output)
         return concat_rep_, sed_output
 
 
-class FusionNet_MM_uni(nn.Module):
+class FusionNet_uni(nn.Module):
 
     def __init__(self, image_net, audio_net,num_classes):
-        super(FusionNet_MM_uni, self).__init__()
+        super(FusionNet_uni, self).__init__()
 
         self.image_net = image_net
         self.audio_net = audio_net
@@ -162,7 +156,6 @@ class FusionNet_MM_uni(nn.Module):
         self.fusion_fc  = nn.Linear(2048, self.num_classes)
         self.KD_fc = nn.Linear(2048, 527)
         self.sig = nn.Sigmoid()
-      
 
     def forward(self, image):
 
@@ -176,41 +169,3 @@ class FusionNet_MM_uni(nn.Module):
         sed_output = self.sig(sed_output)
         return concat_rep_, sed_output
 
-class FusionNet_unimodal(nn.Module):
-
-    def __init__(self, image_net, audio_net,num_classes):
-        super(FusionNet_unimodal, self).__init__()
-
-        self.image_net = image_net
-        self.audio_net = audio_net
-        self.num_classes = num_classes
-
-        #self.image_fc1 = nn.Linear(2048,1024)
-        #self.audio_fc1 = nn.Linear(2048,1024)
-
-        #self.fusion_fc1 = nn.Linear(2048,512)
-        #self.fusion_fc2 = nn.Linear(512,self.num_classes)
-        self.fusion_fc  = nn.Linear(2048, self.num_classes)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, image):
-
-        image_rep = self.image_net(image)[0] # fc_rep
-        #audio_rep = self.audio_net(audio)[0] # fc_rep
-
-        #image_rep = self.image_fc1(image_rep)
-        #image_rep = self.relu(image_rep) # batch_size * 1024
-
-        #audio_rep = self.audio_fc1(audio_rep)
-        #audio_rep = self.relu(audio_rep) # batch_Size * 1024
-
-        # concat
-
-        #concat_rep = torch.cat((image_rep,audio_rep),dim = 1)
-
-        #concat_rep = self.fusion_fc1(concat_rep)
-        #concat_rep = self.relu(concat_rep)
-        #concat_rep = self.fusion_fc2(concat_rep) # outter cross-entropy + softmax
-
-        concat_rep  = self.fusion_fc(image_rep)
-        return concat_rep

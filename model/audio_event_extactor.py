@@ -24,7 +24,7 @@ def net_test(net,data_loader):
         for i, data in enumerate(data_loader, 0):
             aud, label = data
             aud = aud.type(torch.FloatTensor).cuda()
-            output = net(aud)[1]
+            output = net(aud)[1]        # here for extracting the event predictions
             output_cpu = output.cpu().numpy()
             save_sound_event_label(label, output_cpu)
             
@@ -39,7 +39,7 @@ def save_sound_event_label(data_sample, data_label, data_dir='/mnt/scratch/hudi/
 
     for i in range(len(data_sample)):
         data_m = data_sample[i].split('/')
-        data_path = os.path.join(data_dir, 'event_label_59', data_m[0])
+        data_path = os.path.join(data_dir, 'event_label_bayes', data_m[0])
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         data_name = data_m[1]+'_ser.npy'

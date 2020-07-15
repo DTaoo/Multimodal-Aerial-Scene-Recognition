@@ -35,7 +35,7 @@ def augment_image(image):
 
 
 class CVSDataset(Dataset):
-    def __init__(self, data_dir, data_sample, data_label, seed, enhance=True, use_KD=True, event_label_name='event_label_bayes_59'): # 'train' 'val' 'test'
+    def __init__(self, data_dir, data_sample, data_label, seed, enhance=True, use_KD=True, event_label_name='event_label_bayes'): # 'train' 'val' 'test'
         self.data_dir = data_dir
         self.data_sample = data_sample
         self.data_label = data_label

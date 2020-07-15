@@ -8,9 +8,7 @@ import argparse
 from CVS_dataset import CVSDataset
 from resnet_image import resnet101 as IMG_NET
 from resnet_audio import resnet50  as AUD_NET
-from fusion_net import FusionNet, FusionNet_unimodal
 from fusion_net import FusionNet_Bayes
-from fusion_net import FusionNet_KD
 import pickle
 import torch.optim as optim
 import datetime
@@ -99,7 +97,7 @@ def main():
     parser.add_argument('--seed', type=int, default=10)
     parser.add_argument('--audionet_pretrain', type=int, default=1)
     parser.add_argument('--videonet_pretrain', type=int, default=1) 
-    parser.add_argument('--kd_weight', type=float, default=0.1)
+    parser.add_argument('--eve_weight', type=float, default=0.1)
     parser.add_argument('--reg_weight', type=float, default=0.001)
 
     parser.add_argument('--using_event_knowledge', default=True, action='store_true')
@@ -109,20 +107,7 @@ def main():
 
     (train_sample, train_label, val_sample, val_label, test_sample, test_label) = data_construction(args.data_dir)
 
-    #f = open(args.data_name, 'wb')
-    #data = {'train_sample':train_sample, 'train_label':train_label, 'test_sample':test_sample, 'test_label':test_label}
-    #pickle.dump(data, f)
-    #f.close()
-
-    print('bayes model...')
-    print(args.videonet_pretrain)
-    print(args.audionet_pretrain)
-    print(args.seed)
-    print(args.kd_weight)
-    print(args.reg_weight)
-    print(args.using_event_knowledge)
-    print(args.using_event_regularizer)
-    print(args.learning_rate)
+    print('bayes transfer model...')
 
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
@@ -149,7 +134,7 @@ def main():
         audio_net.load_state_dict(state)
 
     # all stand up
-    fusion_net = FusionNet(image_net, audio_net, num_classes=13)
+    fusion_net = FusionNet_Bayes(image_net, audio_net, num_classes=13)
 
     gpu_ids = [i for i in range(4)]
     fusion_net_cuda = torch.nn.DataParallel(fusion_net, device_ids=gpu_ids).cuda()
@@ -157,8 +142,6 @@ def main():
     loss_func_CE  = torch.nn.CrossEntropyLoss()
     loss_func_BCE = torch.nn.BCELoss(reduce=True)
     loss_func_COSINE = cosine_loss()
-    softmax_ = nn.LogSoftmax(dim=1)
-    loss_func_KL   = torch.nn.KLDivLoss()
 
     optimizer = optim.Adam(params=fusion_net_cuda.parameters(), lr=args.learning_rate, betas=(0.9, 0.999), weight_decay=0.0001)
 
@@ -201,18 +184,15 @@ def main():
             scene_loss += CE_loss.cpu()
 
             if args.using_event_knowledge:
-                scene_prob   = torch.nn.functional.softmax(scene_output, dim=1)
+                scene_prob    = torch.nn.functional.softmax(scene_output, dim=1)
                 event_output  = scene_prob.mm(scene_to_event)           
                 
-                kl_loss = loss_func_BCE(event_output, event_label) * args.kd_weight
-                #cosine_loss_ = loss_func_COSINE(event_output, event_label) * args.kd_weight
+                kl_loss = loss_func_BCE(event_output, event_label) * args.eve_weight
                 event_loss += kl_loss.cpu()
 
                 if args.using_event_regularizer:
-                    #print('tt')
-                    #regularizer_loss = loss_func_KL(softmax_(event_output), softmax_(event_label))
-                    regularizer_loss = loss_func_COSINE(event_output, event_corr) * args.kd_weight * args.reg_weight
-                    losses = CE_loss + kl_loss + regularizer_loss 
+                    regularizer_loss = loss_func_COSINE(event_output, event_corr) * args.eve_weight * args.reg_weight
+                    losses = CE_loss + kl_loss + regularizer_loss
                     regu_loss += regularizer_loss.cpu()                   
                 else:
                    

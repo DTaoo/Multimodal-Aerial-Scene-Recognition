@@ -9,7 +9,7 @@ from CVS_dataset import CVSDataset
 from resnet_image import resnet101 as IMG_NET
 from resnet_audio import resnet50  as AUD_NET
 from fusion_net import FusionNet as FUS_NET
-from fusion_net import FusionNet_KD
+from fusion_net import FusionNet_SQ
 import pickle
 import torch.optim as optim
 import datetime
@@ -42,13 +42,14 @@ def net_test(net,data_loader,iteration,cal_map=False):
             ground_labels = np.concatenate((ground_labels, label.cpu().numpy()))
             correct += ((predict_label == label).sum().cpu().numpy())
             # map
-    np.save('visual/kd_label_%d.npy' % iteration, ground_labels)
-    np.save('visual/kd_predict_event_%d.npy' % iteration, predict_events)
+
+    np.save('visual/sq_label_%d.npy' % iteration, ground_labels)
+    np.save('visual/sq_predict_event_%d.npy' % iteration, predict_events)
     results = sklearn.metrics.classification_report(ground_labels, predict_labels, digits=4)
     (precision, recall, fscore, sup) = sklearn.metrics.precision_recall_fscore_support(ground_labels, predict_labels, average='weighted')
     acc = correct/num
     confusion_matrix = sklearn.metrics.confusion_matrix(ground_labels, predict_labels)
-    np.save('visual/kd_confusion_%d.npy'%iteration, confusion_matrix)
+    np.save('visual/sq_confusion_%d.npy'%iteration, confusion_matrix)
 
     return (acc, precision, recall, fscore, results)
 
@@ -66,9 +67,9 @@ def main():
     parser.add_argument('--epoch',type=int,default=2000,help='training epoch')
     parser.add_argument('--gpu_ids', type=str, default='[0,1,2,3]', help='USING GPU IDS e.g.\'[0,4]\'')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help = 'SGD momentum (default: 0.9)')
-    parser.add_argument('--image_net_weights', type=str, default='visual_model_pretrain.pt', help='image net weights')
-    parser.add_argument('--audio_net_weights', type=str, default='checkpoint59.pt',
-                        help='image net weights')
+    parser.add_argument('--image_net_weights', type=str, default='AID_visual_pretrain.pt', help='image net weights')
+    parser.add_argument('--audio_net_weights', type=str, default='audioset_audio_pretrain.pt',
+                        help='audio net weights')
 
     parser.add_argument('--data_dir', type=str, default='/mnt/scratch/hudi/soundscape/data/',
                         help='image net weights')
@@ -77,13 +78,12 @@ def main():
     parser.add_argument('--seed', type=int, default=10)
     parser.add_argument('--audionet_pretrain', type=int, default=1)
     parser.add_argument('--videonet_pretrain', type=int, default=1) 
-    parser.add_argument('--kd_weight', type=float, default=0.1)
+    parser.add_argument('--sq_weight', type=float, default=0.1)
 
     args = parser.parse_args()
 
-    print('kd_model...')
-    #print('baseline...')
-    print('kd_weight ' + str(args.kd_weight))
+    print('sq_model...')
+    print('sq_weight ' + str(args.sq_weight))
     print('audionet_pretrain ' + str(args.audionet_pretrain))
     print('videonet_pretrain ' + str(args.videonet_pretrain))
 
@@ -100,10 +100,9 @@ def main():
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-
-    train_dataset = CVSDataset(args.data_dir, train_sample, train_label, seed=args.seed, event_label_name='event_label_59')
-    val_dataset  = CVSDataset(args.data_dir, val_sample, val_label, seed=args.seed, event_label_name='event_label_59')
-    test_dataset = CVSDataset(args.data_dir, test_sample, test_label, seed=args.seed, event_label_name='event_label_59')
+    train_dataset = CVSDataset(args.data_dir, train_sample, train_label, seed=args.seed, event_label_name='event_label')
+    val_dataset  = CVSDataset(args.data_dir, val_sample, val_label, seed=args.seed, event_label_name='event_label')
+    test_dataset = CVSDataset(args.data_dir, test_sample, test_label, seed=args.seed, event_label_name='event_label')
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=args.batch_size,shuffle=False, num_workers=args.num_threads)
     val_dataloader   = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_threads)
@@ -120,14 +119,13 @@ def main():
         audio_net.load_state_dict(state)
 
     # all stand up
-    fusion_net = FusionNet_KD(image_net, audio_net, num_classes=13)
+    fusion_net = FusionNet_SQ(image_net, audio_net, num_classes=13)
     
 
     gpu_ids = [i for i in range(4)]
     fusion_net_cuda = torch.nn.DataParallel(fusion_net, device_ids=gpu_ids).cuda()
 
     loss_func_CE  = torch.nn.CrossEntropyLoss()
-    loss_func_BCE = torch.nn.BCELoss()
     loss_func_MSE = torch.nn.MSELoss()
 
     optimizer = optim.Adam(params=fusion_net_cuda.parameters(), lr=args.learning_rate, betas=(0.9, 0.999), weight_decay=0.0001)
@@ -151,18 +149,16 @@ def main():
 
             optimizer.zero_grad()
 
-            scene_output, KD_output = fusion_net_cuda(img, aud)
+            scene_output, SQ_output = fusion_net_cuda(img, aud)
             CE_loss  = loss_func_CE(scene_output, scene_label)
-            BCE_loss = loss_func_MSE(KD_output, event_label) * args.kd_weight
+            MSE_loss = loss_func_MSE(SQ_output, event_label) * args.sq_weight
 
-            #CE_loss.backward(retain_graph=True)
-            #MSE_loss.backward()
-            losses = CE_loss + BCE_loss
+            losses = CE_loss + MSE_loss
             losses.backward()
             optimizer.step()
 
             scene_loss  += CE_loss.cpu()
-            event_loss  += BCE_loss.cpu()
+            event_loss  += MSE_loss.cpu()
 
         end_time = datetime.datetime.now()
         delta_time = (end_time - begin_time)
@@ -221,7 +217,7 @@ def main():
 
             # Save model
             MODEL_PATH = 'checkpoint2'
-            MODEL_FILE = os.path.join(MODEL_PATH, 'kd_checkpoint%d_%.3f.pt' % (e,test_fscore_mean))
+            MODEL_FILE = os.path.join(MODEL_PATH, 'sq_checkpoint%d_%.3f.pt' % (e,test_fscore_mean))
             state = {'model': fusion_net_cuda.state_dict(), 'optimizer': optimizer.state_dict()}
             sys.stderr.write('Saving model to %s ...\n' % MODEL_FILE)
             torch.save(state, MODEL_FILE)
