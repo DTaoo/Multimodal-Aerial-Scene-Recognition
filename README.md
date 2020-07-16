@@ -6,7 +6,7 @@ The pretrain weights of audio and visual net, downloaded from here:
 https://pan.baidu.com/s/106Y0H5xTXYwi4Zeq2Rw_Og  code:5es6
 
 ## Dataset
-We construct a new dataset, named AuDio Visual Aerial sceNe reCognition datasEt (ADVANCE), providing 5075 paired images and sound clips categorized to 13 scenes, for exploring the aerial scene recognition task. You can view the dataset here](https://akchen.github.io/ADVANCE-DATASET/) or directly
+We construct a new dataset, named AuDio Visual Aerial sceNe reCognition datasEt (ADVANCE), providing 5075 paired images and sound clips categorized to 13 scenes, for exploring the aerial scene recognition task. You can view the dataset [here](https://akchen.github.io/ADVANCE-DATASET/) or directly
 download the dataset [here](https://zenodo.org/record/3828124). Related train/val/test partition can be achieved by the 'data_construction()' function in data/data_partition.py
 
 ## Usage
