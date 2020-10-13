@@ -1,5 +1,5 @@
 # Multimodal-Aerial-Scene-Recognition
-This is the code for paper [Cross-Task Transfer for Geotagged Audiovisual Aerial Scene Recognition](https://arxiv.org/abs/2005.08449)
+This is the code for paper [Cross-Task Transfer for Geotagged Audiovisual Aerial Scene Recognition](https://arxiv.org/abs/2005.08449) (ECCV 2020)
 
 ## Pretrained weight
 The pretrain weights of audio and visual net, downloaded from here:
