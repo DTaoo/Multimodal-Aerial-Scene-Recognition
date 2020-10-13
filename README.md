@@ -4,6 +4,8 @@ This is the code for paper [Cross-Task Transfer for Geotagged Audiovisual Aerial
 ## Pretrained weight
 The pretrain weights of audio and visual net, downloaded from here:
 https://pan.baidu.com/s/106Y0H5xTXYwi4Zeq2Rw_Og  code:5es6
+or here:
+https://zenodo.org/record/4082894
 
 ## Dataset
 We construct a new dataset, named AuDio Visual Aerial sceNe reCognition datasEt (ADVANCE), providing 5075 paired images and sound clips categorized to 13 scenes, for exploring the aerial scene recognition task. You can view the dataset [here](https://akchen.github.io/ADVANCE-DATASET/) or directly
